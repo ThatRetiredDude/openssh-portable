@@ -1733,8 +1733,12 @@ channel_decode_socks5(Channel *c, struct sshbuf *input, struct sshbuf *output)
 		success = socks_decode_error(c, r, __func__, "version");
 		goto out;
 	}
-	if (socks_ver != 5) /* shouldn't happen */
-		fatal_fr(r, "channel %d: internal error: not socks5", c->self);
+	if (socks_ver != 5) {
+		/* possible if the request followed auth in the same read */
+		debug2("channel %d: bad socks5 request version %u",
+		    c->self, socks_ver);
+		goto out;
+	}
 
 	/* Parse SOCKS5 request header */
 	debug2("channel %d: socks5 post auth", c->self);
