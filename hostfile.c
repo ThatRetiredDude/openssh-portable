@@ -770,13 +770,18 @@ static int
 match_maybe_hashed(const char *host, const char *names, int *was_hashed)
 {
 	int hashed = *names == HASH_DELIM, ret;
-	char *hashed_host = NULL;
+	char *lhost, *hashed_host = NULL;
 	size_t nlen = strlen(names);
 
 	if (was_hashed != NULL)
 		*was_hashed = hashed;
 	if (hashed) {
-		if ((hashed_host = host_hash(host, names, nlen)) == NULL)
+		/* Names are lowercased before hashing; see format_host_entry */
+		lhost = xstrdup(host);
+		lowercase(lhost);
+		hashed_host = host_hash(lhost, names, nlen);
+		free(lhost);
+		if (hashed_host == NULL)
 			return -1;
 		ret = (nlen == strlen(hashed_host) &&
 		    strncmp(hashed_host, names, nlen) == 0);

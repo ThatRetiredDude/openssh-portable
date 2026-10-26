@@ -218,3 +218,13 @@ check_hashed_find host-h "find simple in hashed" $OBJ/kh.hosts
 cp $OBJ/kh.hashed.orig $OBJ/kh.hashed
 ${SSHKEYGEN} -qf $OBJ/kh.hashed -R host-a 2>/dev/null
 ${SSHKEYGEN} -qf $OBJ/kh.hashed -F host-a && fail "found key after hashed remove"
+
+# Test lookup using a name that differs in case
+${SSHKEYGEN} -qf $OBJ/kh.hashed.orig -F HOST-A >/dev/null || \
+    fail "didn't find mixed-case name in hashed"
+
+# Test remove using a name that differs in case
+cp $OBJ/kh.hashed.orig $OBJ/kh.hashed
+${SSHKEYGEN} -qf $OBJ/kh.hashed -R HOST-A 2>/dev/null
+${SSHKEYGEN} -qf $OBJ/kh.hashed -F host-a && \
+    fail "found key after mixed-case hashed remove"
