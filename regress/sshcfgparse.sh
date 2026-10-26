@@ -27,6 +27,26 @@ verbose "reparse minimal config"
  ${SSH} -G -F $OBJ/ssh_config.1 somehost >$OBJ/ssh_config.2 &&
  diff $OBJ/ssh_config.1 $OBJ/ssh_config.2) || fail "failed to reparse minimal"
 
+verbose "reparse quoted values"
+cat >$OBJ/ssh_config.0 <<EOD
+Host *
+    ControlPath "/tmp/control  path"
+    IdentityFile "/tmp/id  file"
+    CertificateFile "#cert"
+    XAuthLocation "=xauth"
+    UserKnownHostsFile "/tmp/known  hosts" /tmp/known_hosts2
+    SetEnv "FOO=a  b"
+    SendEnv "A  B"
+    RemoteForward "/tmp/listen  path" "/tmp/connect  path"
+    RemoteCommand echo "a  b"
+EOD
+(${SSH} -G -F $OBJ/ssh_config.0 somehost >$OBJ/ssh_config.1 &&
+ ${SSH} -G -F $OBJ/ssh_config.1 somehost >$OBJ/ssh_config.2 &&
+ diff $OBJ/ssh_config.1 $OBJ/ssh_config.2) || fail "failed to reparse quoted"
+f=`awk '/^userknownhostsfile /' $OBJ/ssh_config.1`
+test "$f" = 'userknownhostsfile "/tmp/known  hosts" /tmp/known_hosts2' || \
+    fail "userknownhostsfile not quoted, got '$f'"
+
 verbose "ssh -W opts"
 f=`${SSH} -GF $OBJ/ssh_config host | awk '/exitonforwardfailure/{print $2}'`
 test "$f" = "no" || fail "exitonforwardfailure default"

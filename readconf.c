@@ -3667,8 +3667,34 @@ dump_cfg_fmtint(OpCodes code, int val)
 	printf("%s %s\n", lookup_opcode_name(code), fmt_intarg(code, val));
 }
 
+/* Print a single argument, quoted and escaped so it may be parsed again */
+static void
+dump_cfg_arg(const char *arg)
+{
+	char *s;
+
+	s = argv_assemble(1, (char **)&arg);
+	/* a leading '#' or '=' would otherwise be eaten by the parser */
+	if (*s == '#' || *s == '=')
+		printf(" \"%s\"", s);
+	else
+		printf(" %s", s);
+	free(s);
+}
+
 static void
 dump_cfg_string(OpCodes code, const char *val)
+{
+	if (val == NULL)
+		return;
+	printf("%s", lookup_opcode_name(code));
+	dump_cfg_arg(val);
+	printf("\n");
+}
+
+/* For options that take the rest of the line verbatim, e.g. commands */
+static void
+dump_cfg_line(OpCodes code, const char *val)
 {
 	if (val == NULL)
 		return;
@@ -3681,7 +3707,7 @@ dump_cfg_strarray(OpCodes code, u_int count, char **vals)
 	u_int i;
 
 	for (i = 0; i < count; i++)
-		printf("%s %s\n", lookup_opcode_name(code), vals[i]);
+		dump_cfg_string(code, vals[i]);
 }
 
 static void
@@ -3693,7 +3719,7 @@ dump_cfg_strarray_oneline(OpCodes code, u_int count, char **vals)
 	if (count == 0)
 		printf(" none");
 	for (i = 0; i < count; i++)
-		printf(" %s",  vals[i]);
+		dump_cfg_arg(vals[i]);
 	printf("\n");
 }
 
@@ -3714,7 +3740,7 @@ dump_cfg_forwards(OpCodes code, u_int count, const struct Forward *fwds)
 			continue;
 		printf("%s", lookup_opcode_name(code));
 		if (fwd->listen_port == PORT_STREAMLOCAL)
-			printf(" %s", fwd->listen_path);
+			dump_cfg_arg(fwd->listen_path);
 		else if (fwd->listen_host == NULL)
 			printf(" %d", fwd->listen_port);
 		else {
@@ -3723,7 +3749,7 @@ dump_cfg_forwards(OpCodes code, u_int count, const struct Forward *fwds)
 		}
 		if (code != oDynamicForward) {
 			if (fwd->connect_port == PORT_STREAMLOCAL)
-				printf(" %s", fwd->connect_path);
+				dump_cfg_arg(fwd->connect_path);
 			else if (fwd->connect_host == NULL)
 				printf(" %d", fwd->connect_port);
 			else {
@@ -3825,8 +3851,8 @@ dump_client_config(Options *o, const char *host)
 	dump_cfg_string(oKbdInteractiveDevices, o->kbd_interactive_devices);
 	dump_cfg_string(oKexAlgorithms, o->kex_algorithms);
 	dump_cfg_string(oCASignatureAlgorithms, o->ca_sign_algorithms);
-	dump_cfg_string(oLocalCommand, o->local_command);
-	dump_cfg_string(oRemoteCommand, o->remote_command);
+	dump_cfg_line(oLocalCommand, o->local_command);
+	dump_cfg_line(oRemoteCommand, o->remote_command);
 	dump_cfg_string(oLogLevel, log_level_name(o->log_level));
 	dump_cfg_string(oMacs, o->macs);
 #ifdef ENABLE_PKCS11
@@ -3836,9 +3862,9 @@ dump_client_config(Options *o, const char *host)
 	dump_cfg_string(oPreferredAuthentications, o->preferred_authentications);
 	dump_cfg_string(oPubkeyAcceptedAlgorithms, o->pubkey_accepted_algos);
 	dump_cfg_string(oXAuthLocation, o->xauth_location);
-	dump_cfg_string(oKnownHostsCommand, o->known_hosts_command);
+	dump_cfg_line(oKnownHostsCommand, o->known_hosts_command);
 	dump_cfg_string(oTag, o->tag);
-	dump_cfg_string(oVersionAddendum, o->version_addendum);
+	dump_cfg_line(oVersionAddendum, o->version_addendum);
 
 	/* Forwards */
 	dump_cfg_forwards(oDynamicForward, o->num_local_forwards, o->local_forwards);
@@ -3942,7 +3968,7 @@ dump_client_config(Options *o, const char *host)
 
 	/* oProxyCommand / oProxyJump */
 	if (o->jump_host == NULL)
-		dump_cfg_string(oProxyCommand, o->proxy_command);
+		dump_cfg_line(oProxyCommand, o->proxy_command);
 	else {
 		/* Check for numeric addresses */
 		i = strchr(o->jump_host, ':') != NULL ||
