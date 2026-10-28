@@ -3920,6 +3920,8 @@ dump_client_config(Options *o, const char *host)
 	/* oEscapeChar */
 	if (o->escape_char == SSH_ESCAPECHAR_NONE)
 		printf("escapechar none\n");
+	else if (o->escape_char < 32)
+		printf("escapechar ^%c\n", o->escape_char + '@');
 	else {
 		vis(buf, o->escape_char, VIS_WHITE, 0);
 		printf("escapechar %s\n", buf);

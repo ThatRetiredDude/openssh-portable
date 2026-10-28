@@ -87,6 +87,16 @@ expect_result_present "$f" "yes"
 f=`${SSH} -GF none '-oforwardagent=SSH_AUTH_SOCK.forward' host | awk '/^forwardagent /{print$2}'`
 expect_result_present "$f" "SSH_AUTH_SOCK.forward"
 
+verbose "escapechar"
+for c in '~' '^a' '^@' none; do
+	(${SSH} -GF none -oescapechar="$c" host >$OBJ/ssh_config.1 &&
+	 ${SSH} -GF $OBJ/ssh_config.1 host >$OBJ/ssh_config.2 &&
+	 diff $OBJ/ssh_config.1 $OBJ/ssh_config.2) || \
+	    fail "failed to reparse escapechar $c"
+done
+f=`${SSH} -GF none -oescapechar=^a host | awk '/^escapechar /{print$2}'`
+test "$f" = "^A" || fail "escapechar ^a, expected '^A' got '$f'"
+
 verbose "command line override"
 cat >$OBJ/ssh_config.0 <<EOD
 Host *
