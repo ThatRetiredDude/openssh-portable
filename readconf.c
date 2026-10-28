@@ -3706,11 +3706,9 @@ dump_cfg_forwards(OpCodes code, u_int count, const struct Forward *fwds)
 	/* oDynamicForward */
 	for (i = 0; i < count; i++) {
 		fwd = &fwds[i];
-		if (code == oDynamicForward && fwd->connect_host != NULL &&
-		    strcmp(fwd->connect_host, "socks") != 0)
+		if (code == oDynamicForward && fwd->connect_port != 0)
 			continue;
-		if (code == oLocalForward && fwd->connect_host != NULL &&
-		    strcmp(fwd->connect_host, "socks") == 0)
+		if (code == oLocalForward && fwd->connect_port == 0)
 			continue;
 		printf("%s", lookup_opcode_name(code));
 		if (fwd->listen_port == PORT_STREAMLOCAL)

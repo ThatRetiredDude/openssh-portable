@@ -98,5 +98,20 @@ expect_result_present "$f" "cs1"
 f=`${SSH} -GF $OBJ/ssh_config.0 -otunneldevice=3:4 host | awk '/^tunneldevice /{print$2}'`
 expect_result_present "$f" "3:4"
 
+verbose "forwarding"
+cat >$OBJ/ssh_config.0 <<EOD
+Host *
+    LocalForward 1234 /tmp/remote.sock
+    LocalForward 2345 socks:80
+    DynamicForward 3456
+EOD
+f=`${SSH} -GF $OBJ/ssh_config.0 host | awk '/^dynamicforward /{print$2}'`
+test "$f" = "3456" || fail "dynamicforward, expected '3456' got '$f'"
+f=`${SSH} -GF $OBJ/ssh_config.0 host | awk '/^localforward /{print$2}'`
+expect_result_present "$f" "1234" "2345"
+(${SSH} -GF $OBJ/ssh_config.0 host >$OBJ/ssh_config.1 &&
+ ${SSH} -GF $OBJ/ssh_config.1 host >$OBJ/ssh_config.2 &&
+ diff $OBJ/ssh_config.1 $OBJ/ssh_config.2) || fail "failed to reparse forwarding"
+
 # cleanup
 rm -f $OBJ/ssh_config.[012]
